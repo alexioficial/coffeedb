@@ -5,3 +5,4 @@ data/
 .venv/
 .todo
 notas.txt
+.DS_Store
