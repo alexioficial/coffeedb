@@ -227,6 +227,14 @@ class Collection:
                     datos = tools.CargarArchivoJson(file_path)
 
                     if all(datos.get(k) == v for k, v in filtro.items()):
+                        # Eliminar las referencias en los índices
+                        for index in self._config['indexes']:
+                            index_value = datos.get(index)
+                            if index_value and index_value in self._indexes_cache[index]:
+                                self._indexes_cache[index][index_value].remove(archivo)
+                                if not self._indexes_cache[index][index_value]:
+                                    del self._indexes_cache[index][index_value]
+                        
                         os.remove(file_path)
                         deleted_count += 1
                         count -= 1
@@ -235,7 +243,9 @@ class Collection:
                 right -= 1
 
         self._modificar_config('count', count)
+        self._flush_indexes_to_disk()  # Actualizar índices en disco
         return DeleteResult(deleted_count=deleted_count)
+
 
     def update(self, filtro={}, nuevos_datos={}) -> UpdateResult:
         self._reload_config()
@@ -262,14 +272,34 @@ class Collection:
 
                     if all(datos.get(k) == v for k, v in filtro.items()):
                         matched_count += 1
+                        old_data = datos.copy()
                         datos.update(nuevos_datos)
+
+                        # Actualizar índices si es necesario
+                        for index in self._config['indexes']:
+                            old_value = old_data.get(index)
+                            new_value = datos.get(index)
+                            if old_value != new_value:
+                                # Eliminar la referencia antigua
+                                if old_value in self._indexes_cache[index]:
+                                    self._indexes_cache[index][old_value].remove(archivo)
+                                    if not self._indexes_cache[index][old_value]:
+                                        del self._indexes_cache[index][old_value]
+
+                                # Agregar la nueva referencia
+                                if new_value not in self._indexes_cache[index]:
+                                    self._indexes_cache[index][new_value] = []
+                                self._indexes_cache[index][new_value].append(archivo)
+
                         tools.EscribirArchivoJson(file_path, datos)
                         modified_count += 1
 
                 left += 1
                 right -= 1
 
+        self._flush_indexes_to_disk()  # Guardar los índices en disco
         return UpdateResult(matched_count=matched_count, modified_count=modified_count)
+
 
 class Db:
     def __init__(self, cluster_name: str, name: str):
