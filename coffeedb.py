@@ -246,7 +246,6 @@ class Collection:
         self._flush_indexes_to_disk()  # Actualizar índices en disco
         return DeleteResult(deleted_count=deleted_count)
 
-
     def update(self, filtro={}, nuevos_datos={}) -> UpdateResult:
         self._reload_config()
         matched_count = 0
@@ -275,11 +274,20 @@ class Collection:
                         old_data = datos.copy()
                         datos.update(nuevos_datos)
 
-                        # Actualizar índices si es necesario
+                        # Validar si algún campo actualizado es un índice único
                         for index in self._config['indexes']:
                             old_value = old_data.get(index)
                             new_value = datos.get(index)
+
                             if old_value != new_value:
+                                # Si el índice es único, verificar si el nuevo valor ya existe
+                                if self._config['indexes'][index]['unique']:
+                                    if new_value in self._indexes_cache[index]:
+                                        print(f"Update denied for unique index '{index}': {new_value} already exists.")
+                                        # Revertir datos al estado anterior
+                                        datos = old_data
+                                        break  # Salir del ciclo si se ha revertido
+
                                 # Eliminar la referencia antigua
                                 if old_value in self._indexes_cache[index]:
                                     self._indexes_cache[index][old_value].remove(archivo)
@@ -291,14 +299,17 @@ class Collection:
                                     self._indexes_cache[index][new_value] = []
                                 self._indexes_cache[index][new_value].append(archivo)
 
-                        tools.EscribirArchivoJson(file_path, datos)
-                        modified_count += 1
+                        # Solo guardar los datos si no hubo problemas con índices únicos
+                        if datos != old_data:  # Verificar que los datos se hayan modificado
+                            tools.EscribirArchivoJson(file_path, datos)
+                            modified_count += 1
 
                 left += 1
                 right -= 1
 
         self._flush_indexes_to_disk()  # Guardar los índices en disco
         return UpdateResult(matched_count=matched_count, modified_count=modified_count)
+
 
 
 class Db:
