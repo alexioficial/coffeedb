@@ -22,7 +22,7 @@ class Collection:
                 'each_stack': 1000,
                 'stacks': 1,
                 'creation_date': tools.FechaToStr(datetime.datetime.now()),
-                'indexes': []
+                'indexes': {}
             }
             tools.EscribirArchivoJson(ruta_config, configuracion)
         self._config = tools.CargarArchivoJson(ruta_config)
@@ -30,14 +30,14 @@ class Collection:
         self._indexes_cache = {}  # Cache de índices en memoria
 
         # Cargar archivos de índices en memoria
-        for index in self._config['indexes']:
+        for index, index_data in self._config['indexes'].items():
             index_file_path = os.path.join(self._ruta_indexes, f"{index}.json")
             if tools.ExisteFile(index_file_path):
                 self._indexes_cache[index] = tools.CargarArchivoJson(index_file_path)
             else:
                 self._indexes_cache[index] = {}
 
-        self.create_index('_uuid_')
+        self.create_index('_uuid_', unique=True)
 
     def stack(self, each):
         self._modificar_config('each_stack', each)
@@ -55,9 +55,9 @@ class Collection:
         self._reload_config()
         return self._config.get(key)
 
-    def create_index(self, field: str):
+    def create_index(self, field: str, unique: bool = False):
         if field not in self._config['indexes']:
-            self._config['indexes'].append(field)
+            self._config['indexes'][field] = {'unique': unique}
             tools.EscribirArchivoJson(self._ruta_config, self._config)
 
             # Crear archivo para el índice en memoria y luego disco
@@ -83,11 +83,11 @@ class Collection:
         }
 
         # Verificar duplicados en índices antes de insertar, usando la cache
-        for index in self._config['indexes']:
+        for index, index_data in self._config['indexes'].items():
             index_value = data.get(index)
             if index_value is not None:
-                if index_value in self._indexes_cache.get(index, {}):
-                    print(f"Duplicate entry for index '{index}': {index_value}. Insertion skipped.")
+                if index_data['unique'] and index_value in self._indexes_cache.get(index, {}):
+                    print(f"Duplicate entry for unique index '{index}': {index_value}. Insertion skipped.")
                     return None  # No se realiza la inserción
 
         # Obtener configuración de stacks
@@ -121,7 +121,6 @@ class Collection:
                     self._indexes_cache[index][index_value] = []
                 self._indexes_cache[index][index_value].append(f"{file_id}.json")
 
-        # Guardar índices en disco después de las inserciones
         self._flush_indexes_to_disk()
 
         return file_id
