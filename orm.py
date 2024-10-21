@@ -1,19 +1,78 @@
-from flask import Flask, request, session
-from flask_session import Session
-from uuid import uuid4
+from typing import Union
+from results import DeleteResult, UpdateResult
+import requests as req
+import coffeedb
 
-app = Flask(__name__)
+class Collection:
+    def __init__(self, cluster_name: str, database_name: str, name: str):
+        pass
 
-llave = uuid4().hex
+    def stack(self, each):
+        pass
 
-app.config.from_mapping(
-    SECRET_KEY = llave,
-    SESSION_TYPE = 'filesystem',
-    SESSION_PERMANENT = True
-)
+    def _reload_config(self):
+        pass
 
-Session(app)
+    def _modificar_config(self, key, value):
+        pass
 
-@app.post('/')
-def index():
-    pass
+    def get_config(self, key):
+        pass
+
+    def create_index(self, field: str, unique: bool = False):
+        pass
+
+    def _flush_indexes_to_disk(self):
+        pass
+
+    def insert(self, data: dict) -> Union[int, None]:
+        pass
+
+    def select(self, filtro=None, project=None, limit=None):
+        pass
+
+    def _project(self, data: dict, project: dict):
+        pass
+
+    def delete(self, filtro={}) -> DeleteResult:
+        pass
+
+    def update(self, filtro={}, nuevos_datos={}) -> UpdateResult:
+        pass
+
+
+class Db:
+    def __init__(self, cluster_name: str, name: str):
+        pass
+
+    def __getitem__(self, key):
+        pass
+    
+    def get_collections_names(self):
+        pass
+    
+    def get_collections_list(self):
+        pass
+    
+    def delete_collection(self, collection: Union[str, Collection]):
+        pass
+
+
+class CoffeeClient:
+    def __init__(self, name: str) -> None:
+        pass
+
+    def __getitem__(self, key):
+        pass
+    
+    def get_databases_names(self):
+        pass
+    
+    def get_databases_list(self):
+        pass
+    
+    def create_database(self, database_name: str):
+        pass
+
+    def delete_database(self, database: Union[str, Db]):
+        pass
