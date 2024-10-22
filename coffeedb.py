@@ -1,8 +1,11 @@
 import os
-import tools
+from . import tools
 import datetime
 from typing import Union
-from results import DeleteResult, UpdateResult
+from . import results
+
+DeleteResult = results.DeleteResult
+UpdateResult = results.UpdateResult
 
 class Collection:
     def __init__(self, cluster_name: str, database_name: str, name: str):
