@@ -46,33 +46,43 @@ class Db:
         pass
 
     def __getitem__(self, key):
+        # /db/get_collection # data {name: 'collection_name'}
         pass
     
     def get_collections_names(self):
+        # /db/get_collections_names
         pass
     
     def get_collections_list(self):
+        # /db/get_collections_names # formatearlas
         pass
     
     def delete_collection(self, collection: Union[str, Collection]):
+        # /db/delete_collection # data {name: 'collection_name'}
         pass
 
 
 class CoffeeClient:
     def __init__(self, name: str) -> None:
+        # /auth
         pass
 
     def __getitem__(self, key):
+        # /get_db # data {name: 'db_name'}
         pass
     
     def get_databases_names(self):
+        # /get_db_names
         pass
     
     def get_databases_list(self):
+        # /get_db_names # formatearlo
         pass
     
     def create_database(self, database_name: str):
+        # /create_db # data {name: 'db_name'}
         pass
 
     def delete_database(self, database: Union[str, Db]):
+        # /create_db # data {name: 'db_name'}
         pass
