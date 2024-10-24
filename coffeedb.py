@@ -30,9 +30,8 @@ class Collection:
             tools.EscribirArchivoJson(ruta_config, configuracion)
         self._config = tools.CargarArchivoJson(ruta_config)
         self._ruta_config = ruta_config
-        self._indexes_cache = {}  # Cache de índices en memoria
+        self._indexes_cache = {}
 
-        # Cargar archivos de índices en memoria
         for index, index_data in self._config['indexes'].items():
             index_file_path = os.path.join(self._ruta_indexes, f"{index}.json")
             if tools.ExisteFile(index_file_path):
@@ -63,7 +62,6 @@ class Collection:
             self._config['indexes'][field] = {'unique': unique}
             tools.EscribirArchivoJson(self._ruta_config, self._config)
 
-            # Crear archivo para el índice en memoria y luego disco
             index_file_path = os.path.join(self._ruta_indexes, f"{field}.json")
             if not os.path.exists(index_file_path):
                 self._indexes_cache[field] = {}
@@ -85,35 +83,29 @@ class Collection:
             **data
         }
 
-        # Verificar duplicados en índices antes de insertar, usando la cache
         for index, index_data in self._config['indexes'].items():
             index_value = data.get(index)
             if index_value is not None:
                 if index_data['unique'] and index_value in self._indexes_cache.get(index, {}):
                     print(f"Duplicate entry for unique index '{index}': {index_value}. Insertion skipped.")
-                    return None  # No se realiza la inserción
+                    return None
 
-        # Obtener configuración de stacks
         each_stack: int = self.get_config('each_stack')
         count: int = self.get_config('count')
         stacks: int = self.get_config('stacks')
 
-        # Calcular en qué stack debe ir este archivo
         stack_id = (count // each_stack) + 1
         stack_folder = os.path.join(self._ruta, str(stack_id * each_stack))
 
-        # Crear el stack si no existe
         if not os.path.exists(stack_folder):
             os.makedirs(stack_folder)
             stacks += 1
             self._modificar_config('stacks', stacks)
 
-        # Guardar el archivo en el stack adecuado
         file_id = count + 1
         file_path = os.path.join(stack_folder, f"{file_id}.json")
         tools.EscribirArchivoJson(file_path, data)
 
-        # Aumentar el contador de registros
         self._modificar_config('count', count + 1)
 
         # Actualizar índices en la cache
@@ -133,14 +125,12 @@ class Collection:
         stacks_folders = tools.ListCarpetas(self._ruta)
 
         if filtro and any(key in self._config['indexes'] for key in filtro.keys()):
-            # Usar índice para realizar la búsqueda
             for key, value in filtro.items():
                 if key in self._config['indexes']:
                     index_data = self._indexes_cache.get(key, {})
                     if value in index_data:
                         file_ids = index_data[value]
                         for file_id in file_ids:
-                            # Buscar el archivo en cada stack
                             for stack in stacks_folders:
                                 stack_folder = os.path.join(self._ruta, stack)
                                 file_path = os.path.join(stack_folder, file_id)
@@ -230,7 +220,6 @@ class Collection:
                     datos = tools.CargarArchivoJson(file_path)
 
                     if all(datos.get(k) == v for k, v in filtro.items()):
-                        # Eliminar las referencias en los índices
                         for index in self._config['indexes']:
                             index_value = datos.get(index)
                             if index_value and index_value in self._indexes_cache[index]:
@@ -246,7 +235,7 @@ class Collection:
                 right -= 1
 
         self._modificar_config('count', count)
-        self._flush_indexes_to_disk()  # Actualizar índices en disco
+        self._flush_indexes_to_disk()
         return DeleteResult(deleted_count=deleted_count)
 
     def update(self, filtro={}, nuevos_datos={}) -> UpdateResult:
@@ -277,40 +266,33 @@ class Collection:
                         old_data = datos.copy()
                         datos.update(nuevos_datos)
 
-                        # Validar si algún campo actualizado es un índice único
                         for index in self._config['indexes']:
                             old_value = old_data.get(index)
                             new_value = datos.get(index)
 
                             if old_value != new_value:
-                                # Si el índice es único, verificar si el nuevo valor ya existe
                                 if self._config['indexes'][index]['unique']:
                                     if new_value in self._indexes_cache[index]:
                                         print(f"Update denied for unique index '{index}': {new_value} already exists.")
-                                        # Revertir datos al estado anterior
                                         datos = old_data
-                                        break  # Salir del ciclo si se ha revertido
 
-                                # Eliminar la referencia antigua
                                 if old_value in self._indexes_cache[index]:
                                     self._indexes_cache[index][old_value].remove(archivo)
                                     if not self._indexes_cache[index][old_value]:
                                         del self._indexes_cache[index][old_value]
 
-                                # Agregar la nueva referencia
                                 if new_value not in self._indexes_cache[index]:
                                     self._indexes_cache[index][new_value] = []
                                 self._indexes_cache[index][new_value].append(archivo)
 
-                        # Solo guardar los datos si no hubo problemas con índices únicos
-                        if datos != old_data:  # Verificar que los datos se hayan modificado
+                        if datos != old_data:
                             tools.EscribirArchivoJson(file_path, datos)
                             modified_count += 1
 
                 left += 1
                 right -= 1
 
-        self._flush_indexes_to_disk()  # Guardar los índices en disco
+        self._flush_indexes_to_disk()
         return UpdateResult(matched_count=matched_count, modified_count=modified_count)
 
 
