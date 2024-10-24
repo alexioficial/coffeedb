@@ -27,5 +27,3 @@ def auth():
             return {'status': 0, 'auth': session['auth']}
         except Exception as e:
             return {'status': 1, 'msj': str(e)}
-
-# @app.route('')

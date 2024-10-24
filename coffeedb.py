@@ -1,8 +1,8 @@
 import os
-from . import tools
+import tools
 import datetime
 from typing import Union
-from . import results
+import results
 
 DeleteResult = results.DeleteResult
 UpdateResult = results.UpdateResult
@@ -294,7 +294,6 @@ class Collection:
 
         self._flush_indexes_to_disk()
         return UpdateResult(matched_count=matched_count, modified_count=modified_count)
-
 
 
 class Db:

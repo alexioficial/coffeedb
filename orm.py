@@ -68,7 +68,7 @@ class Db:
         pass
 
 class CoffeeClient:
-    def __init__(self, name: str) -> None:
+    def __init__(self, url: str) -> None:
         # /auth
         pass
 
